@@ -1,0 +1,96 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider    = "postgresql"
+  url         = env("DATABASE_URL")
+  directUrl   = env("DIRECT_URL")
+}
+
+model User {
+  id              String                  @id @default(uuid())
+  clerkUserId     String                  @unique
+  email           String                  @unique
+  name            String?
+  imageUrl        String?
+  phone           String?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  role            UserRole                @default(USER)
+  savedGames      UserSavedGame[]
+  gameSessions    GameSessionBooking[]
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+model Game {
+  id                  String                  @id @default(uuid())
+  title               String
+  slug                String                  @unique
+  description         String
+  genres              String[]                // e.g. ["RPG","MMO"]
+  platforms           String[]                // e.g. ["PC","Xbox","PS5"]
+  releaseDate         DateTime?
+  pricePerSession     Decimal                 @db.Decimal(10,2)
+  status              GameStatus              @default(AVAILABLE)
+  featured            Boolean                 @default(false)
+  images              String[]                // Supabase storage URLs
+  savedBy             UserSavedGame[]
+  sessionBookings     GameSessionBooking[]
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+
+  @@index([title, status])
+  @@index([featured])
+}
+
+enum GameStatus {
+  AVAILABLE
+  UNAVAILABLE
+  RETIRED
+}
+
+model UserSavedGame {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  gameId    String
+  savedAt   DateTime @default(now())
+
+  @@unique([userId, gameId])
+  @@index([userId])
+  @@index([gameId])
+}
+
+model GameSessionBooking {
+  id             String        @id @default(uuid())
+  user           User          @relation(fields: [userId], references: [id])
+  userId         String
+  game           Game          @relation(fields: [gameId], references: [id])
+  gameId         String
+  sessionDate    DateTime      @db.Date
+  startTime      String        // "HH:MM" 24‑hour
+  endTime        String        // "HH:MM" 24‑hour
+  status         BookingStatus @default(PENDING)
+  notes          String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([userId])
+  @@index([gameId])
+  @@index([sessionDate])
+  @@index([status])
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}

@@ -1,4 +1,9 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {};
+const nextConfig = {
+  devIndicators: false,
+  experimental: {
+    serverComponentsHmrCache: false, // defaults to true
+  },
+}
 
-export default nextConfig;
+export default nextConfig
