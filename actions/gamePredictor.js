@@ -45,11 +45,9 @@ export async function predictMatchOutcome(matchDescription) {
       Only return the JSON object. Do not include any explanations or formatting.`
 
     const result = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-2.5-flash',
       contents: prompt,
     })
-
-    console.log('AI response:', result)
 
     const text = await result.text
     const cleanedText = text.replace(/```(?:json)?\n?|```/g, '').trim()
