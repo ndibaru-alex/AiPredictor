@@ -86,7 +86,9 @@ export const Header = async ({ isAdminPage = false }) => {
               <SignedOut>
                 {!isAdminPage && (
                   <SignInButton forceRedirectUrl="/">
-                    <Button variant="outline">Login</Button>
+                    <Button variant="outline" className="cursor-pointer">
+                      Login
+                    </Button>
                   </SignInButton>
                 )}
               </SignedOut>

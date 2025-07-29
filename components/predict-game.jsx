@@ -13,11 +13,12 @@ import {
   TableHeader,
   TableRow,
 } from './ui/table'
-import { predictMatchOutcome } from '@/actions/gamePredictor'
+import { predictMatchOutcomes } from '@/actions/gamePredictor'
 import { toast } from 'sonner'
 
+// Accept a multiline or semicolon-separated list of matches
 const formSchema = z.object({
-  description: z.string().min(20, 'Please describe at least two matches.'),
+  descriptions: z.string().min(1, 'Enter at least one match description.'),
 })
 
 export default function MatchPredictor() {
@@ -29,60 +30,76 @@ export default function MatchPredictor() {
     reset,
   } = useForm({ resolver: zodResolver(formSchema) })
 
-  const [matchDescription, setMatchDescription] = useState('')
-  const [data, setData] = useState(null)
+  const [rawInput, setRawInput] = useState('')
+  const [results, setResults] = useState(null)
   const [loading, setLoading] = useState(false)
-  const watchedDescription = watch('description')
 
+  const watched = watch('descriptions')
   useEffect(() => {
-    setMatchDescription(watchedDescription)
-  }, [watchedDescription])
+    setRawInput(watched || '')
+  }, [watched])
 
   const onSubmit = async () => {
-    if (!matchDescription.trim()) return
+    // Split by newline or semicolon
+    const matches = rawInput
+      .split(/(?:\r?\n|;)+/)
+      .map((s) => s.trim())
+      .filter(Boolean)
+
+    if (matches.length === 0) {
+      toast.error('Please enter at least one match.')
+      return
+    }
+    if (matches.length > 10) {
+      toast.error('You can predict at most 10 matches at a time.')
+      return
+    }
+
     setLoading(true)
     try {
-      const result = await predictMatchOutcome(matchDescription)
-      setData(result)
-    } catch (error) {
-      console.error('Prediction failed:', error)
-      toast.error(
-        'Failed to get predictions. Please try again.' + error.message,
-      )
+      const res = await predictMatchOutcomes(matches)
+      if (!res.success) {
+        throw new Error(res.error || 'Unknown error')
+      }
+      setResults(res.data)
+    } catch (err) {
+      console.error('Prediction failed:', err)
+      toast.error('Failed to get predictions: ' + err.message)
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="max-w-3xl mx-auto p-6 bg-amber-100">
-      <h2 className="text-xl font-semibold mb-4">Predict Match Outcome</h2>
+    <div className="max-w-5xl mx-auto p-6 bg-amber-100">
+      <h2 className="text-xl font-semibold mb-4">Predict Match Outcomes</h2>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <textarea
-          {...register('description')}
-          placeholder="e.g. Arsenal vs Man City on 20 July 2025; Chelsea vs Liverpool on 21 July 2025"
-          className="w-full border p-2 rounded shadow"
+          {...register('descriptions')}
+          placeholder="Enter matches, e.g. 'Arsenal vs Man City on 20 July 2025; Chelsea vs Liverpool on 21 July 2025', !!!one per line "
+          className="border p-2 rounded shadow w-4xl"
           rows={4}
         />
-        {errors.description && (
-          <p className="text-red-500 text-sm">{errors.description.message}</p>
+        {errors.descriptions && (
+          <p className="text-red-500 text-sm">{errors.descriptions.message}</p>
         )}
 
-        <Button type="submit" disabled={loading}>
-          {loading ? 'Predicting...' : 'Predict Match Outcome'}
+        <Button type="submit" disabled={loading} className="cursor-pointer">
+          {loading ? 'Predicting...' : 'Predict Matches'}
         </Button>
       </form>
 
-      {data?.success && (
+      {results && (
         <div className="mt-8">
-          <div className="flex justify-between text-center">
+          <div className="flex justify-between items-center">
             <h3 className="text-lg font-medium mb-2">Prediction Results</h3>
             <Button
               onClick={() => {
-                setData(null)
+                setResults(null)
                 reset()
               }}
+              className="cursor-pointer"
             >
               Clear
             </Button>
@@ -98,14 +115,16 @@ export default function MatchPredictor() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.data.match.predictions.map((p, i) => (
-                <TableRow key={i}>
-                  <TableCell>{data.data.match.teams}</TableCell>
-                  <TableCell>{p.outcome}</TableCell>
-                  <TableCell>{p.confidence}%</TableCell>
-                  <TableCell>{p.rationale}</TableCell>
-                </TableRow>
-              ))}
+              {results.predictions.map((entry, i) =>
+                entry.match.predictions.map((p, j) => (
+                  <TableRow key={`${i}-${j}`}>
+                    <TableCell>{entry.match.teams}</TableCell>
+                    <TableCell>{p.outcome}</TableCell>
+                    <TableCell>{p.confidence}%</TableCell>
+                    <TableCell>{p.rationale}</TableCell>
+                  </TableRow>
+                )),
+              )}
             </TableBody>
           </Table>
         </div>

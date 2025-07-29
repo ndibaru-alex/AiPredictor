@@ -20,13 +20,13 @@ export default function NamvMenu() {
   ]
   return (
     <ul className="hidden md:flex space-x-6">
-      {navLinks.map(({ label, href, color }) => {
+      {navLinks.map(({ label, href }) => {
         const isActive = pathname === href
         const classes = isActive
           ? 'text-yellow-300 animate-pulse'
           : 'text-pink-300'
         return (
-          <li key={href}>
+          <li key={label}>
             <Link href={href} className={`${classes} transition `}>
               {label}
             </Link>
