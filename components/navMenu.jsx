@@ -17,6 +17,11 @@ export default function NamvMenu() {
       href: '/',
       color: 'text-pink-300 hover:text-pink-100',
     },
+    {
+      label: 'Documentation',
+      href: '/doc',
+      color: 'text-pink-300 hover:text-pink-100',
+    },
   ]
   return (
     <ul className="hidden md:flex space-x-6">
